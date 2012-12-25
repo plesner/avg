@@ -6,12 +6,7 @@ void Display::initialize() {
 }
 
 void Display::draw_pixel(int16_t x, int16_t y) {
-  if (y < 0 || y >= HEIGHT)
-    return;
-  if (x < start_row_ || x >= end_row_)
-    return;
-  uint16_t index = (kBufferSize * 8 - 1) - (((x - start_row_) * HEIGHT) + y);
-  display_buffer_[index >> 3] |= 1 << (index & 0x7);
+  tft().drawPixel(y, x, ST7735_GREEN);
 }
 
 void Display::draw_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
@@ -81,8 +76,9 @@ void Display::transform_line(double x0, double y0, double x1, double y1) {
 }
 
 void Display::clear_buffer() {
-  for (uint16_t i = 0; i < kBufferSize; i++)
-    display_buffer_[i] = 0x00;
+  //for (uint16_t i = 0; i < kBufferSize; i++)
+  //  display_buffer_[i] = 0x00;
+  tft().fillScreen(ST7735_BLACK);
 }
 
 void Display::set_segment(uint8_t start_row, uint8_t end_row) {
@@ -100,5 +96,5 @@ void Display::update_transform(double zoom, double theta, double dx, double dy) 
 }
 
 void Display::flush(uint16_t on_color, uint16_t off_color) {
-  tft().blit(start_row_, end_row_, display_buffer_, on_color, off_color);
+  // tft().blit(start_row_, end_row_, display_buffer_, on_color, off_color);
 }

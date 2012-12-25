@@ -199,14 +199,13 @@ void Main::navigate() {
   uint16_t rotation = analogRead(A2);
   double theta = 3.141592645 * (rotation - kHalf) / kHalf;
   
-  // Update the display.
+  // Update the display
   display().update_transform(zoom, theta, dx, dy);
 }
 
 void Main::loop() {
   uint16_t time = millis();
-  draw_segment(0, WIDTH / 2);
-  draw_segment(WIDTH / 2, WIDTH);
+  draw_segment(0, WIDTH);
   time = millis() - time;
   Serial.println(time, DEC);
   navigate();
