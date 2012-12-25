@@ -162,7 +162,8 @@ public:
   void loop();
   
   // Renders the drawing on the specified segment of the display.
-  void draw_segment(uint16_t start_row, uint16_t end_row);
+  void draw_segment(uint16_t start_row, uint16_t end_row, uint16_t *clear_time,
+    uint16_t *draw_time, uint16_t *blit_time);
   
   // Reads navigation state from the analog pins and updates the transform matrix
   // in the display appropriately.
@@ -184,11 +185,21 @@ void Main::setup() {
   pinMode(A3, INPUT);
 }
 
-void Main::draw_segment(uint16_t start_row, uint16_t end_row) {
+void Main::draw_segment(uint16_t start_row, uint16_t end_row, uint16_t *clear_time,
+    uint16_t *draw_time, uint16_t *blit_time) {
   display().set_segment(start_row, end_row);
+  uint16_t start = millis();
   display().clear_buffer();
+  uint16_t end = millis();
+  *clear_time += end - start;
+  start = end;
   Drawing::draw_hand(display());
+  end = millis();
+  *draw_time += end - start;
+  start = end;
   display().flush(ST7735_GREEN, ST7735_BLACK);
+  end = millis();  
+  *blit_time += end - start;
 }
 
 void Main::navigate() {
@@ -221,11 +232,21 @@ void Main::navigate() {
 }
 
 void Main::loop() {
-  uint16_t time = millis();
-  draw_segment(0, kWidth / 2);
-  draw_segment(kWidth / 2, kWidth);
-  time = millis() - time;
-  Serial.println(time, DEC);
+  uint16_t clear_time = 0;
+  uint16_t draw_time = 0;
+  uint16_t blit_time = 0;
+  uint16_t start = millis();
+  draw_segment(0, kWidth / 2, &clear_time, &draw_time, &blit_time);
+  draw_segment(kWidth / 2, kWidth, &clear_time, &draw_time, &blit_time);
+  uint16_t end = millis();
+  Serial.print("clear: ");
+  Serial.println(clear_time, DEC);
+  Serial.print("draw: ");
+  Serial.println(draw_time, DEC);
+  Serial.print("blit: ");
+  Serial.println(blit_time, DEC);
+  Serial.print("total: ");
+  Serial.println(end - start, DEC);
   navigate();
 }
 

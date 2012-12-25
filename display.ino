@@ -112,16 +112,22 @@ void Display::blit(uint8_t row_start, uint8_t row_end, uint8_t *data,
 // These are macros because whatever the compiler might think they absolutely
 // need to be inlined.
 
-#define SPI_WRITE(c) do { \
-  SPDR = c; \
+// Waits for a fast spi write to complete.
+#define WAIT_FOR_SPI_WRITE() do { \
   while (!(SPSR & _BV(SPIF))) \
     ; \
 } while (false)
 
+// Starts a fast spi write, possibly waiting for the previous one to complete.
+#define START_SPI_WRITE(c) do { \
+  WAIT_FOR_SPI_WRITE(); \
+  SPDR = c; \
+} while (false)
+
 #define SPI_WRITE_12BIT(high, low) do { \
-  SPI_WRITE((high >> 4) & 0xFF); \
-  SPI_WRITE((high & 0xF) << 4 | (low >> 8) & 0xF); \
-  SPI_WRITE(low & 0xFF); \
+  START_SPI_WRITE((high >> 4) & 0xFF); \
+  START_SPI_WRITE(((high & 0xF) << 4) | ((low >> 8) & 0xF)); \
+  START_SPI_WRITE(low & 0xFF); \
 } while (false)
 
 #define EMIT_BIT_PAIR(t, b) do { \
@@ -141,17 +147,19 @@ void Display::blit(uint8_t row_start, uint8_t row_end, uint8_t *data,
 } while (false)
 
   uint16_t length = (kHeight / 2) * kWidth;
-  for (uint16_t i = length; i > 0; i -= 8) {
-    uint8_t byte = data[(i >> 3)];
+  for (uint16_t i = length >> 3; i > 0; i--) {
+    uint8_t byte = data[i];
     EMIT_BIT_PAIR(7, 6);
     EMIT_BIT_PAIR(5, 4);
     EMIT_BIT_PAIR(3, 2);
     EMIT_BIT_PAIR(1, 0);
   }
+  WAIT_FOR_SPI_WRITE();
 
 #undef EMIT_BIT_PAIR
 #undef SPI_WRITE_12BIT
 #undef SPI_WRITE
+#undef WAIT_FOR_SPI
 
   *tft.csport |= tft.cspinmask;
 }
