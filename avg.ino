@@ -110,7 +110,14 @@ public:
   // Updates the display transformation with the given parameters.
   void update_transform(double zoom, double theta, double dx, double dy);
   
-private:  
+private:
+  // Writes a byte to the display over hardware SPI.
+  void spi_write(uint8_t b);
+  
+  // Writes a bitmap to the display over hardware SPI.
+  void blit(uint8_t row_start, uint8_t row_end, uint8_t *data, uint16_t on,
+    uint16_t off);
+
   Adafruit_ST7735 tft_;
   
   Adafruit_ST7735 &tft() { return tft_; }

@@ -99,6 +99,54 @@ void Display::update_transform(double zoom, double theta, double dx, double dy) 
   m.translate(WIDTH / 2.0 / zoom + dx, HEIGHT / 2.0 / zoom + dy);  
 }
 
+void Display::spi_write(uint8_t c) {
+  SPDR = c;
+  while (!(SPSR & _BV(SPIF)))
+    ;
+}
+
+// This requires the tft driver to be patched with a friend declaration for the
+// Display class since this code uses its internals.
+void Display::blit(uint8_t row_start, uint8_t row_end, uint8_t *data,
+  uint16_t on, uint16_t off) {
+  Adafruit_ST7735 &tft = this->tft();
+  tft.setAddrWindow(0, row_start, WIDTH - 1, row_end);
+  *tft.rsport |=  tft.rspinmask;
+  *tft.csport &= ~tft.cspinmask;
+  
+  uint8_t on_hi = on >> 8;
+  uint8_t on_lo = on;
+  uint8_t off_hi = off >> 8;
+  uint8_t off_lo = off;
+
+#define BIT(n) do { \
+  if ((byte & (1 << n)) != 0) { \
+    spi_write(on_hi); \
+    spi_write(on_lo); \
+  } else { \
+    spi_write(off_hi); \
+    spi_write(off_lo); \
+  } \
+} while (false)
+
+  uint16_t length = (HEIGHT / 2) * WIDTH;
+  for (uint16_t i = length; i > 0; i -= 8) {
+    uint8_t byte = data[(i >> 3)];
+    BIT(7);
+    BIT(6);
+    BIT(5);
+    BIT(4);
+    BIT(3);
+    BIT(2);
+    BIT(1);
+    BIT(0);
+  }
+
+#undef BIT
+  
+  *tft.csport |= tft.cspinmask;
+}
+
 void Display::flush(uint16_t on_color, uint16_t off_color) {
-  tft().blit(start_row_, end_row_, display_buffer_, on_color, off_color);
+  blit(start_row_, end_row_, display_buffer_, on_color, off_color);
 }
