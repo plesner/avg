@@ -6,11 +6,11 @@ void Display::initialize() {
 }
 
 void Display::draw_pixel(int16_t x, int16_t y) {
-  if (y < 0 || y >= HEIGHT)
+  if (y < 0 || y >= kHeight)
     return;
   if (x < start_row_ || x >= end_row_)
     return;
-  uint16_t index = (kBufferSize * 8 - 1) - (((x - start_row_) * HEIGHT) + y);
+  uint16_t index = (kBufferSize * 8 - 1) - (((x - start_row_) * kHeight) + y);
   display_buffer_[index >> 3] |= 1 << (index & 0x7);
 }
 
@@ -67,9 +67,8 @@ void Display::draw_cubic_bezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, 
   }
 }
 
-#define T(v) ((int16_t) (v))
-#define TX(x, y) T((x) * transform().x_.x_ + (y) * transform().x_.y_ + transform().x_.w_)
-#define TY(x, y) T((x) * transform().y_.x_ + (y) * transform().y_.y_ + transform().y_.w_)
+#define TX(x, y) static_cast<int16_t>(transform().target_x(x, y))
+#define TY(x, y) static_cast<int16_t>(transform().target_y(x, y))
 
 void Display::transform_cubic_bezier(double x0, double y0, double x1, double y1,
     double x2, double y2, double x3, double y3) {
@@ -80,9 +79,11 @@ void Display::transform_line(double x0, double y0, double x1, double y1) {
   draw_line(TX(x0, y0), TY(x0, y0), TX(x1, y1), TY(x1, y1));
 }
 
+#undef TX
+#undef TY
+
 void Display::clear_buffer() {
-  for (uint16_t i = 0; i < kBufferSize; i++)
-    display_buffer_[i] = 0x00;
+  memset(display_buffer_, 0x00, kBufferSize);
 }
 
 void Display::set_segment(uint8_t start_row, uint8_t end_row) {
@@ -93,16 +94,10 @@ void Display::set_segment(uint8_t start_row, uint8_t end_row) {
 void Display::update_transform(double zoom, double theta, double dx, double dy) {
   Matrix &m = transform();
   m.reset();
-  m.translate(-WIDTH / 2.0, -HEIGHT / 2.0);
+  m.translate(-kWidth / 2.0, -kHeight / 2.0);
   m.zoom(zoom);
   m.rotate(theta);
-  m.translate(WIDTH / 2.0 / zoom + dx, HEIGHT / 2.0 / zoom + dy);  
-}
-
-void Display::spi_write(uint8_t c) {
-  SPDR = c;
-  while (!(SPSR & _BV(SPIF)))
-    ;
+  m.translate(kWidth / 2.0 / zoom + dx, kHeight / 2.0 / zoom + dy);  
 }
 
 // This requires the tft driver to be patched with a friend declaration for the
@@ -110,43 +105,58 @@ void Display::spi_write(uint8_t c) {
 void Display::blit(uint8_t row_start, uint8_t row_end, uint8_t *data,
   uint16_t on, uint16_t off) {
   Adafruit_ST7735 &tft = this->tft();
-  tft.setAddrWindow(0, row_start, WIDTH - 1, row_end);
+  tft.setAddrWindow(0, row_start, kWidth - 1, row_end);
   *tft.rsport |=  tft.rspinmask;
   *tft.csport &= ~tft.cspinmask;
-  
-  uint8_t on_hi = on >> 8;
-  uint8_t on_lo = on;
-  uint8_t off_hi = off >> 8;
-  uint8_t off_lo = off;
 
-#define BIT(n) do { \
-  if ((byte & (1 << n)) != 0) { \
-    spi_write(on_hi); \
-    spi_write(on_lo); \
+// These are macros because whatever the compiler might think they absolutely
+// need to be inlined.
+
+#define SPI_WRITE(c) do { \
+  SPDR = c; \
+  while (!(SPSR & _BV(SPIF))) \
+    ; \
+} while (false)
+
+#define SPI_WRITE_12BIT(high, low) do { \
+  SPI_WRITE((high >> 4) & 0xFF); \
+  SPI_WRITE((high & 0xF) << 4 | (low >> 8) & 0xF); \
+  SPI_WRITE(low & 0xFF); \
+} while (false)
+
+#define EMIT_BIT_PAIR(t, b) do { \
+  if ((byte & (1 << t)) != 0) { \
+    if ((byte & (1 << b)) != 0) { \
+      SPI_WRITE_12BIT(kOnColor, kOnColor); \
+    } else { \
+      SPI_WRITE_12BIT(kOnColor, kOffColor); \
+    } \
   } else { \
-    spi_write(off_hi); \
-    spi_write(off_lo); \
+    if ((byte & (1 << b)) != 0) { \
+      SPI_WRITE_12BIT(kOffColor, kOnColor); \
+    } else { \
+      SPI_WRITE_12BIT(kOffColor, kOffColor); \
+    } \
   } \
 } while (false)
 
-  uint16_t length = (HEIGHT / 2) * WIDTH;
+  uint16_t length = (kHeight / 2) * kWidth;
   for (uint16_t i = length; i > 0; i -= 8) {
     uint8_t byte = data[(i >> 3)];
-    BIT(7);
-    BIT(6);
-    BIT(5);
-    BIT(4);
-    BIT(3);
-    BIT(2);
-    BIT(1);
-    BIT(0);
+    EMIT_BIT_PAIR(7, 6);
+    EMIT_BIT_PAIR(5, 4);
+    EMIT_BIT_PAIR(3, 2);
+    EMIT_BIT_PAIR(1, 0);
   }
 
-#undef BIT
-  
+#undef EMIT_BIT_PAIR
+#undef SPI_WRITE_12BIT
+#undef SPI_WRITE
+
   *tft.csport |= tft.cspinmask;
 }
 
 void Display::flush(uint16_t on_color, uint16_t off_color) {
   blit(start_row_, end_row_, display_buffer_, on_color, off_color);
 }
+

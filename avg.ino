@@ -12,6 +12,14 @@ static const double kMinZoom = 0.5;
 // How many points are we painting per segment of a curve?
 static const uint8_t kN = 1;
 
+// Display parameters
+static const uint8_t kWidth = 160;
+static const uint8_t kHeight = 128;
+
+// The colors we're using.
+static const uint16_t kOnColor = ST7735_WHITE;
+static const uint16_t kOffColor = ST7735_BLACK;
+
 // A simple three-element floating point vector. Used for the perspective matrix.
 class Vector {
 public:
@@ -54,6 +62,16 @@ public:
   // Rotates this matrix by the given number of radians.
   void rotate(double theta);
   
+  // Returns the translated x coordinate given the source x and y.
+  inline double target_x(double source_x, double source_y) {
+    return x_.x_ * source_x + x_.y_ * source_y + x_.w_;
+  }
+
+  // Returns the translated y coordinate given the source x and y.
+  inline double target_y(double source_x, double source_y) {
+    return y_.x_ * source_x + y_.y_ * source_y + y_.w_;
+  }
+  
   // Prints this matrix on serial.
   void println();
 public:
@@ -61,11 +79,6 @@ public:
   Vector y_;
   Vector w_;
 };
-
-#define WIDTH 160
-#define HEIGHT 128
-
-// 34567890123456789012345678901234567890123456789012345678901234567890123456789
 
 // Wrapper around the display. All the intersting stuff is in the implementaiton
 // of this class.
@@ -78,20 +91,20 @@ public:
   inline void draw_pixel(int16_t x, int16_t y);
 
   // Draws a straight line from (x0, y0) to (x1, y1).
-  void draw_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
+  inline void draw_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
   
   // Transforms a line according to the transform matrix and renders it onto this
   // display.
-  void transform_line(double x0, double y0, double x1, double y1);
+  inline void transform_line(double x0, double y0, double x1, double y1);
   
   // Draws a cubic bezier curve from (x0, y0) to (x3, y3) with control points at
   // (x1, y1) and (x2, y2).
-  void draw_cubic_bezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+  inline void draw_cubic_bezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
     int16_t x2, int16_t y2, int16_t x3, int16_t y3);
   
   // Transforms a cubic bezier according to the transform matrix and renders it
   // onto this display.
-  void transform_cubic_bezier(double x0, double y0, double x1, double y1,
+  inline void transform_cubic_bezier(double x0, double y0, double x1, double y1,
     double x2, double y2, double x3, double y3);
   
   // Prepares the display for drawing. Don't call any of the draw methods before
@@ -111,9 +124,6 @@ public:
   void update_transform(double zoom, double theta, double dx, double dy);
   
 private:
-  // Writes a byte to the display over hardware SPI.
-  void spi_write(uint8_t b);
-  
   // Writes a bitmap to the display over hardware SPI.
   void blit(uint8_t row_start, uint8_t row_end, uint8_t *data, uint16_t on,
     uint16_t off);
@@ -122,7 +132,7 @@ private:
   
   Adafruit_ST7735 &tft() { return tft_; }
   
-  static const uint16_t kBufferSize = ((WIDTH * HEIGHT) >> 4) + 1;
+  static const uint16_t kBufferSize = ((kWidth * kHeight) >> 4) + 1;
   
   // The boolean display buffer we're rendering on.
   uint8_t display_buffer_[kBufferSize];
@@ -198,22 +208,22 @@ void Main::navigate() {
   
   // Pan
   uint16_t raw_dx = analogRead(A0);
-  double dx = ((raw_dx - kHalf) / kHalf) * WIDTH;
+  double dx = ((raw_dx - kHalf) / kHalf) * kWidth;
   uint16_t raw_dy = analogRead(A1);
-  double dy = ((raw_dy - kHalf) / kHalf) * HEIGHT;
-  
+  double dy = ((raw_dy - kHalf) / kHalf) * kHeight;
+
   // Rotation
   uint16_t rotation = analogRead(A2);
   double theta = 3.141592645 * (rotation - kHalf) / kHalf;
-  
+
   // Update the display.
   display().update_transform(zoom, theta, dx, dy);
 }
 
 void Main::loop() {
   uint16_t time = millis();
-  draw_segment(0, WIDTH / 2);
-  draw_segment(WIDTH / 2, WIDTH);
+  draw_segment(0, kWidth / 2);
+  draw_segment(kWidth / 2, kWidth);
   time = millis() - time;
   Serial.println(time, DEC);
   navigate();
