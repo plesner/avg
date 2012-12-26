@@ -10,7 +10,7 @@ static const double kMaxZoom = 8.0;
 static const double kMinZoom = 0.5;
 
 // How many points are we painting per segment of a curve?
-static const uint8_t kN = 4;
+static const uint8_t kN = 32;
 
 // Display parameters
 static const uint8_t kWidth = 160;
@@ -39,7 +39,9 @@ class Point {
 public:
   inline Point(double _x, double _y) : x(_x), y(_y) { }
   inline Point operator*(double v) { return Point(x * v, y * v); }
+  inline Point operator/(double v) { return Point(x / v, y / v); }
   inline Point operator+(Point p) { return Point(x + p.x, y + p.y); }
+  inline Point operator-(Point p) { return Point(x - p.x, y - p.y); }
   double x;
   double y;
 };
