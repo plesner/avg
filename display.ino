@@ -53,30 +53,28 @@ void Display::draw_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
   }
 }
 
-void Display::draw_cubic_bezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
-    int16_t y2, int16_t x3, int16_t y3) {
-  int16_t last_x = x0;
-  int16_t last_y = y0; 
+void Display::transform_line(Point p0, Point p1) {
+  Point tp0 = transform().transform(p0);
+  Point tp1 = transform().transform(p1);
+  draw_line(tp0.x, tp0.y, tp1.x, tp1.y);
+}
+
+void Display::draw_cubic_bezier(Point p0, Point p1, Point p2, Point p3) {
+  int16_t last_x = p0.x;
+  int16_t last_y = p0.y;
   for (uint8_t i = 1; i <= kN; i++) {
     double t = ((double) i) / kN;
-    int16_t x = (int16_t) (x0 * pow(1 - t, 3) + 3 * x1 * t * pow(1 - t, 2) + 3 * x2 * pow(t, 2) * (1 - t) + x3 * pow(t, 3));
-    int16_t y = (int16_t) (y0 * pow(1 - t, 3) + 3 * y1 * t * pow(1 - t, 2) + 3 * y2 * pow(t, 2) * (1 - t) + y3 * pow(t, 3));    
+    Point p = (p0 * pow(1 - t, 3)) + (p1 * 3 * t * pow(1 - t, 2)) + (p2 * 3 * pow(t, 2) * (1 - t)) + (p3 * pow(t, 3));
+    int16_t x = p.x;
+    int16_t y = p.y;
     draw_line(last_x, last_y, x, y);
     last_x = x;
-    last_y = y;
+    last_y = x;
   }
 }
 
-#define TX(x, y) static_cast<int16_t>(transform().target_x(x, y))
-#define TY(x, y) static_cast<int16_t>(transform().target_y(x, y))
-
-void Display::transform_cubic_bezier(double x0, double y0, double x1, double y1,
-    double x2, double y2, double x3, double y3) {
-  draw_cubic_bezier(TX(x0, y0), TY(x0, y0), TX(x1, y1), TY(x1, y1), TX(x2, y2), TY(x2, y2), TX(x3, y3), TY(x3, y3));
-}
-
-void Display::transform_line(double x0, double y0, double x1, double y1) {
-  draw_line(TX(x0, y0), TY(x0, y0), TX(x1, y1), TY(x1, y1));
+void Display::transform_cubic_bezier(Point p0, Point p1, Point p2, Point p3) {
+  draw_cubic_bezier(transform().transform(p0), transform().transform(p1), transform().transform(p2), transform().transform(p3));
 }
 
 #undef TX

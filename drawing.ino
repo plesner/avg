@@ -125,7 +125,7 @@ void Drawing::draw(double *program, Display &display) {
       case oAbsLineTo: {
         float tx = pgm_read_float(program++);
         float ty = pgm_read_float(program++);
-        display.transform_line(x, y, tx, ty);
+        display.transform_line(Point(x, y), Point(tx, ty));
         x = tx;
         y = ty;
         break;
@@ -133,7 +133,7 @@ void Drawing::draw(double *program, Display &display) {
       case oRelLineTo: {
         float dx = pgm_read_float(program++);
         float dy = pgm_read_float(program++);
-        display.transform_line(x, y, x + dx, y + dy);
+        display.transform_line(Point(x, y), Point(x + dx, y + dy));
         x += dx;
         y += dy;
         break;
@@ -145,7 +145,7 @@ void Drawing::draw(double *program, Display &display) {
         float ty1 = pgm_read_float(program++);
         float tx2 = pgm_read_float(program++);
         float ty2 = pgm_read_float(program++);
-        display.transform_cubic_bezier(x, y, tx0, ty0, tx1, ty1, tx2, ty2);
+        display.transform_cubic_bezier(Point(x, y), Point(tx0, ty0), Point(tx1, ty1), Point(tx2, ty2));
         x = tx2;
         y = ty2;
         break;
@@ -157,7 +157,7 @@ void Drawing::draw(double *program, Display &display) {
         float dy1 = pgm_read_float(program++);
         float dx2 = pgm_read_float(program++);
         float dy2 = pgm_read_float(program++);
-        display.transform_cubic_bezier(x, y, x + dx0, y + dy0, x + dx1, y + dy1, x + dx2, y + dy2);
+        display.transform_cubic_bezier(Point(x, y), Point(x + dx0, y + dy0), Point(x + dx1, y + dy1), Point(x + dx2, y + dy2));
         x += dx2;
         y += dy2;
         break;

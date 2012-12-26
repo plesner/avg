@@ -34,6 +34,16 @@ public:
   double w_;
 };
 
+// A simple (x, y) point.
+class Point {
+public:
+  inline Point(double _x, double _y) : x(_x), y(_y) { }
+  inline Point operator*(double v) { return Point(x * v, y * v); }
+  inline Point operator+(Point p) { return Point(x + p.x, y + p.y); }
+  double x;
+  double y;
+};
+
 // A three by three matrix that can be used to transform point on the display.
 class Matrix {
 public:
@@ -62,16 +72,11 @@ public:
   // Rotates this matrix by the given number of radians.
   void rotate(double theta);
   
-  // Returns the translated x coordinate given the source x and y.
-  inline double target_x(double source_x, double source_y) {
-    return x_.x_ * source_x + x_.y_ * source_y + x_.w_;
+  // Translates the given point.
+  inline Point transform(Point p) {
+    return Point(x_.x_ * p.x + x_.y_ * p.y + x_.w_, y_.x_ * p.x + y_.y_ * p.y + y_.w_);
   }
 
-  // Returns the translated y coordinate given the source x and y.
-  inline double target_y(double source_x, double source_y) {
-    return y_.x_ * source_x + y_.y_ * source_y + y_.w_;
-  }
-  
   // Prints this matrix on serial.
   void println();
 public:
@@ -95,17 +100,15 @@ public:
   
   // Transforms a line according to the transform matrix and renders it onto this
   // display.
-  inline void transform_line(double x0, double y0, double x1, double y1);
+  inline void transform_line(Point p0, Point p1);
   
   // Draws a cubic bezier curve from (x0, y0) to (x3, y3) with control points at
   // (x1, y1) and (x2, y2).
-  inline void draw_cubic_bezier(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
-    int16_t x2, int16_t y2, int16_t x3, int16_t y3);
+  inline void draw_cubic_bezier(Point p0, Point p1, Point p2, Point p3);
   
   // Transforms a cubic bezier according to the transform matrix and renders it
   // onto this display.
-  inline void transform_cubic_bezier(double x0, double y0, double x1, double y1,
-    double x2, double y2, double x3, double y3);
+  inline void transform_cubic_bezier(Point p0, Point p1, Point p2, Point p3);
   
   // Prepares the display for drawing. Don't call any of the draw methods before
   // you've called this.
