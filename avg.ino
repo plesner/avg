@@ -4,7 +4,7 @@
 
 // How far can you zoom in? Don't make this too high or it becomes impossible to
 // navigate.
-static const double kMaxZoom = 4.0;
+static const double kMaxZoom = 8.0;
 
 // How far can you zoom out?
 static const double kMinZoom = 0.5;
@@ -17,7 +17,7 @@ static const uint8_t kWidth = 160;
 static const uint8_t kHeight = 128;
 
 // The colors we're using.
-static const uint16_t kOnColor = ST7735_WHITE;
+static const uint16_t kOnColor = ST7735_GREEN;
 static const uint16_t kOffColor = ST7735_BLACK;
 
 // A simple three-element floating point vector. Used for the perspective matrix.
