@@ -60,16 +60,16 @@ void Display::transform_line(Point p0, Point p1) {
 }
 
 void Display::draw_cubic_bezier(Point p0, Point p1, Point p2, Point p3) {
-  int16_t last_x = p0.x;
-  int16_t last_y = p0.y;
+  int16_t last_x = static_cast<int16_t>(p0.x);
+  int16_t last_y = static_cast<int16_t>(p0.y);
   for (uint8_t i = 1; i <= kN; i++) {
     double t = ((double) i) / kN;
     Point p = (p0 * pow(1 - t, 3)) + (p1 * 3 * t * pow(1 - t, 2)) + (p2 * 3 * pow(t, 2) * (1 - t)) + (p3 * pow(t, 3));
-    int16_t x = p.x;
-    int16_t y = p.y;
+    int16_t x = static_cast<int16_t>(p.x);
+    int16_t y = static_cast<int16_t>(p.y);
     draw_line(last_x, last_y, x, y);
     last_x = x;
-    last_y = x;
+    last_y = y;
   }
 }
 

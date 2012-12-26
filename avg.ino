@@ -10,7 +10,7 @@ static const double kMaxZoom = 8.0;
 static const double kMinZoom = 0.5;
 
 // How many points are we painting per segment of a curve?
-static const uint8_t kN = 1;
+static const uint8_t kN = 4;
 
 // Display parameters
 static const uint8_t kWidth = 160;
