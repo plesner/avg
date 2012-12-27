@@ -10,7 +10,7 @@ static const double kMaxZoom = 8.0;
 static const double kMinZoom = 0.5;
 
 // How many points are we painting per segment of a curve?
-static const uint8_t kN = 32;
+static const uint8_t kN = 4;
 
 // Display parameters
 static const uint8_t kWidth = 160;
@@ -106,11 +106,13 @@ public:
   
   // Draws a cubic bezier curve from (x0, y0) to (x3, y3) with control points at
   // (x1, y1) and (x2, y2).
-  inline void draw_cubic_bezier(Point p0, Point p1, Point p2, Point p3);
+  inline void draw_cubic_bezier_plain(Point *points);
+  inline void draw_cubic_bezier_raw_diffs(Point *points);
+  inline void draw_cubic_bezier_faster_diffs(Point *points);
   
   // Transforms a cubic bezier according to the transform matrix and renders it
   // onto this display.
-  inline void transform_cubic_bezier(Point p0, Point p1, Point p2, Point p3);
+  inline void transform_cubic_bezier(Point *points);
   
   // Prepares the display for drawing. Don't call any of the draw methods before
   // you've called this.

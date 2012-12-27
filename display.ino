@@ -59,38 +59,90 @@ void Display::transform_line(Point p0, Point p1) {
   draw_line(tp0.x, tp0.y, tp1.x, tp1.y);
 }
 
-void Display::draw_cubic_bezier(Point p0, Point p1, Point p2, Point p3) {
-  static const double f1 = 1.0 / kN;
-  static const double f2 = 1.0 / kN / kN;
-  static const double f3 = 1.0 / kN / kN / kN;
-
-  Point k0 = p0;
-  Point k1 = (p1 * 3) - (p0 * 3);
-  Point k2 = (p2 * 3) - (p1 * 6) + (p0 * 3);
-  Point k3 = p3 - (p2 * 3) + (p1 * 3) - p0;
-  
-  Point d0 = k0;
-  Point d1 = (((k3 * f1) + k2) * f1 + k1) * f1;
-  Point d2 = (((k3 * 6) * f1) + (k2 * 2)) * f2;
-  Point d3 = (k3 * 6) * f3;
-  
-  int16_t last_x = static_cast<int16_t>(p0.x);
-  int16_t last_y = static_cast<int16_t>(p0.y);
-  for (uint8_t i = 0; i < kN; i++) {
-    d2 = d2 + d3;
-    d1 = d1 + d2;
-    d0 = d0 + d1;
-    Point p = d0;
-    int16_t x = static_cast<int16_t>(p.x);
-    int16_t y = static_cast<int16_t>(p.y);
+void Display::draw_cubic_bezier_plain(Point *p) {
+  int16_t last_x = static_cast<int16_t>(p[0].x);
+  int16_t last_y = static_cast<int16_t>(p[0].y);
+  for (uint8_t i = 1; i <= kN; i++) {
+    double t = ((double) i) / kN;
+    Point n = (p[0] * pow(1 - t, 3)) + (p[1] * 3 * t * pow(1 - t, 2)) + (p[2] * 3 * pow(t, 2) * (1 - t)) + (p[3] * pow(t, 3));
+    int16_t x = static_cast<int16_t>(n.x);
+    int16_t y = static_cast<int16_t>(n.y);
     draw_line(last_x, last_y, x, y);
     last_x = x;
     last_y = y;
   }
 }
 
-void Display::transform_cubic_bezier(Point p0, Point p1, Point p2, Point p3) {
-  draw_cubic_bezier(transform().transform(p0), transform().transform(p1), transform().transform(p2), transform().transform(p3));
+void Display::draw_cubic_bezier_faster_diffs(Point *p) {
+  static const double d = 1.0 / kN;
+
+  // Calculate the four ks.  
+  Point k0 = p[0];
+  Point k1 = (p[1] - p[0]) * 3;
+  Point k2 = (p[2] - p[1] * 2 + p[0]) * 3;
+  Point k3 = p[3] - p[2] * 3 + p[1] * 3 - p[0];
+  
+  // Caldulate the four ds.
+  Point d0 = k0;
+  Point d1 = (((k3 * d) + k2) * d + k1) * d;
+  Point d2 = ((k3 * (3 * d)) + k2) * (2 * d * d);
+  Point d3 = k3 * (6 * d * d * d);
+  
+  // Plot
+  int16_t last_x = static_cast<int16_t>(p[0].x);
+  int16_t last_y = static_cast<int16_t>(p[0].y);
+  for (uint8_t i = 1; i <= kN; i++) {
+    d0 = d0 + d1;
+    d1 = d1 + d2;
+    d2 = d2 + d3;
+    int16_t x = static_cast<int16_t>(d0.x);
+    int16_t y = static_cast<int16_t>(d0.y);
+    draw_line(last_x, last_y, x, y);
+    last_x = x;
+    last_y = y;
+  }
+}
+
+void Display::draw_cubic_bezier_raw_diffs(Point *p) {
+  static const double t0 = 0.0 / kN;
+  static const double t1 = 1.0 / kN;
+  static const double t2 = 2.0 / kN;
+  static const double t3 = 3.0 / kN;
+
+  // Calculate the four ks.  
+  Point d0 = (p[0] * pow(1 - t0, 3)) + (p[1] * 3 * t0 * pow(1 - t0, 2)) + (p[2] * 3 * pow(t0, 2) * (1 - t0)) + (p[3] * pow(t0, 3));
+  Point d1 = (p[0] * pow(1 - t1, 3)) + (p[1] * 3 * t1 * pow(1 - t1, 2)) + (p[2] * 3 * pow(t1, 2) * (1 - t1)) + (p[3] * pow(t1, 3));
+  Point d2 = (p[0] * pow(1 - t2, 3)) + (p[1] * 3 * t2 * pow(1 - t2, 2)) + (p[2] * 3 * pow(t2, 2) * (1 - t2)) + (p[3] * pow(t2, 3));
+  Point d3 = (p[0] * pow(1 - t3, 3)) + (p[1] * 3 * t3 * pow(1 - t3, 2)) + (p[2] * 3 * pow(t3, 2) * (1 - t3)) + (p[3] * pow(t3, 3));
+  
+  d3 = d3 - d2;
+  d2 = d2 - d1;
+  d1 = d1 - d0;
+  d3 = d3 - d2;
+  d2 = d2 - d1;
+  d3 = d3 - d2;
+  
+  // Plot
+  int16_t last_x = static_cast<int16_t>(p[0].x);
+  int16_t last_y = static_cast<int16_t>(p[0].y);
+  for (uint8_t i = 1; i <= kN; i++) {
+    d0 = d0 + d1;
+    d1 = d1 + d2;
+    d2 = d2 + d3;
+    int16_t x = static_cast<int16_t>(d0.x);
+    int16_t y = static_cast<int16_t>(d0.y);
+    draw_line(last_x, last_y, x, y);
+    last_x = x;
+    last_y = y;
+  }
+}
+
+void Display::transform_cubic_bezier(Point *p) {
+  p[0] = transform().transform(p[0]);
+  p[1] = transform().transform(p[1]);
+  p[2] = transform().transform(p[2]);
+  p[3] = transform().transform(p[3]);
+  draw_cubic_bezier_faster_diffs(p);
 }
 
 #undef TX
