@@ -115,17 +115,17 @@ void Drawing::draw(double *program, Display &display) {
       case oAbsLineTo: {
         float tx = pgm_read_float(program++);
         float ty = pgm_read_float(program++);
-        display.transform_line(Point(x, y), Point(tx, ty));
+        display.transform_line(Point<double>(x, y), Point<double>(tx, ty));
         x = tx;
         y = ty;
         break;
       }
       case oAbsCurveTo: {
-        Point points[4] = {
-          Point(x, y),
-          Point(pgm_read_float(program++), pgm_read_float(program++)),
-          Point(pgm_read_float(program++), pgm_read_float(program++)),
-          Point(pgm_read_float(program++), pgm_read_float(program++))
+        Point<double> points[4] = {
+          Point<double>(x, y),
+          Point<double>(pgm_read_float(program++), pgm_read_float(program++)),
+          Point<double>(pgm_read_float(program++), pgm_read_float(program++)),
+          Point<double>(pgm_read_float(program++), pgm_read_float(program++))
         };
         x = points[3].x;
         y = points[3].y;
@@ -141,4 +141,5 @@ void Drawing::draw(double *program, Display &display) {
 void Drawing::draw_hand(Display &display) {
   draw(hand_program, display);
 }
+
 
