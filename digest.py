@@ -25,9 +25,7 @@ def main(args):
   assert len(args) == 1
   stream = Stream(open(args[0], "rt").read())
   def format_float(val):
-    intpart = int(val)
-    fracpart = val - intpart
-    return "v(%s, %s)" % (intpart, fracpart)
+    return "e(%s)" % val
   def parse_coord(coord):
     [x_str, y_str] = coord.split(",")
     return (float(x_str), float(y_str))
@@ -40,7 +38,7 @@ def main(args):
         vx += x
         vy += y
       return "%s, %s" % (format_float(vx), format_float(vy))
-    print "  %s(%s)," % (op, ", ".join(map(process_coord, args)))
+    print "  %s(%s, %s, %s)," % (op, format_float(x), format_float(y), ", ".join(map(process_coord, args)))
     (dx, dy) = parse_coord(args[-1])
     if is_rel:
       x += dx

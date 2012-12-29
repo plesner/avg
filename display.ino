@@ -69,9 +69,9 @@ void Display::draw_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
 }
 
 void Display::transform_line(Point<fixed> p0, Point<fixed> p1) {
-  Point<fixed> tp0 = transform().transform(p0);
-  Point<fixed> tp1 = transform().transform(p1);
-  draw_line(tp0.x.to_int16(), tp0.y.to_int16(), tp1.x.to_int16(), tp1.y.to_int16());
+  p0 = transform().transform(p0);
+  p1 = transform().transform(p1);
+  draw_line(p0.x.to_int16(), p0.y.to_int16(), p1.x.to_int16(), p1.y.to_int16());
 }
 
 void Display::draw_cubic_bezier_plain(Point<double> *p) {
@@ -152,6 +152,36 @@ void Display::draw_cubic_bezier_fixed_diffs(Point<fixed> *p) {
   }
 }
 
+void Display::draw_cubic_bezier_fixed_diffs_precomputed(Point<fixed> *p) {
+  static const double d = 1.0 / kN;
+
+  // Calculate the four ks.  
+  Point<fixed> k0 = p[4];
+  Point<fixed> k1 = p[5];
+  Point<fixed> k2 = p[6];
+  Point<fixed> k3 = p[7];
+  
+  // Caldulate the four ds.
+  Point<fixed> d0 = k0;
+  Point<fixed> d1 = ((((k3 >> kLogN) + k2) >> kLogN) + k1) >> kLogN;
+  Point<fixed> d2 = ((mult_3(k3) >> kLogN) + k2) >> (kLogN * 2 - 1);
+  Point<fixed> d3 = mult_3(k3) >> (3 * kLogN - 1);
+  
+  // Plot
+  int16_t last_x = p[0].x.to_int16();
+  int16_t last_y = p[0].y.to_int16();
+  for (uint8_t i = 1; i <= kN; i++) {
+    d0 = d0 + d1;
+    d1 = d1 + d2;
+    d2 = d2 + d3;
+    int16_t x = d0.x.to_int16();
+    int16_t y = d0.y.to_int16();
+    draw_line(last_x, last_y, x, y);
+    last_x = x;
+    last_y = y;
+  }
+}
+
 void Display::draw_cubic_bezier_raw_diffs(Point<double> *p) {
   static const double t0 = 0.0 / kN;
   static const double t1 = 1.0 / kN;
@@ -191,7 +221,15 @@ void Display::transform_cubic_bezier(Point<fixed> *p) {
   p[1] = transform().transform(p[1]);
   p[2] = transform().transform(p[2]);
   p[3] = transform().transform(p[3]);
+#ifdef PRECOMPUTED
+  p[4] = transform().transform(p[4]);
+  p[5] = transform().transform_no_translate(p[5]);
+  p[6] = transform().transform_no_translate(p[6]);
+  p[7] = transform().transform_no_translate(p[7]);
+  draw_cubic_bezier_fixed_diffs_precomputed(p);
+#else
   draw_cubic_bezier_fixed_diffs(p);
+#endif
 }
 
 #undef TX

@@ -22,6 +22,8 @@ static const uint8_t kLogHeight = 7;
 static const uint16_t kOnColor = ST7735_GREEN;
 static const uint16_t kOffColor = ST7735_BLACK;
 
+#define PRECOMPUTED
+
 template <typename T> class Point;
 
 #define ENCODE_FIXED(v) static_cast<int32_t>(v * fixed::kFactor)
@@ -63,6 +65,9 @@ public:
   // Calculates the dot product (sort of) of this vector with the given point.
   inline fixed dot_product(Point<fixed> p);
   
+  // Calculates the dot product (sort of) of this vector with the given point.
+  inline fixed dot_product_no_translate(Point<fixed> p);
+  
 public:
   double x_, y_, w_;
   fixed fx_, fy_, fw_;
@@ -93,6 +98,10 @@ double Vector::dot_product(Point<double> p) {
 
 fixed Vector::dot_product(Point<fixed> p) {
   return fx_ * p.x + fy_ * p.y + fw_;
+}
+
+fixed Vector::dot_product_no_translate(Point<fixed> p) {
+  return fx_ * p.x + fy_ * p.y;
 }
 
 // A three by three matrix that can be used to transform point on the display.
@@ -127,6 +136,12 @@ public:
   template <typename T>
   inline Point<T> transform(Point<T> p) {
     return Point<T>(x_.dot_product(p), y_.dot_product(p));
+  }
+  
+    // Translates the given point without adding the translation parameter w.
+  template <typename T>
+  inline Point<T> transform_no_translate(Point<T> p) {
+    return Point<T>(x_.dot_product_no_translate(p), y_.dot_product_no_translate(p));
   }
 
   // Prints this matrix on serial.
@@ -164,6 +179,7 @@ public:
   inline void draw_cubic_bezier_raw_diffs(Point<double> *points);
   inline void draw_cubic_bezier_faster_diffs(Point<double> *points);
   inline void draw_cubic_bezier_fixed_diffs(Point<fixed> *points);
+  inline void draw_cubic_bezier_fixed_diffs_precomputed(Point<fixed> *points);
     
   // Prepares the display for drawing. Don't call any of the draw methods before
   // you've called this.
