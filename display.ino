@@ -68,10 +68,10 @@ void Display::draw_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
   }
 }
 
-void Display::transform_line(Point<double> p0, Point<double> p1) {
-  Point<double> tp0 = transform().transform(p0);
-  Point<double> tp1 = transform().transform(p1);
-  draw_line(tp0.x, tp0.y, tp1.x, tp1.y);
+void Display::transform_line(Point<fixed> p0, Point<fixed> p1) {
+  Point<fixed> tp0 = transform().transform(p0);
+  Point<fixed> tp1 = transform().transform(p1);
+  draw_line(tp0.x.to_int16(), tp0.y.to_int16(), tp1.x.to_int16(), tp1.y.to_int16());
 }
 
 void Display::draw_cubic_bezier_plain(Point<double> *p) {
@@ -122,19 +122,14 @@ static inline Point<fixed> mult_3(const Point<fixed> &p) {
   return (p << 1) + p;
 }
 
-void Display::draw_cubic_bezier_fixed_diffs(Point<double> *p) {
+void Display::draw_cubic_bezier_fixed_diffs(Point<fixed> *p) {
   static const double d = 1.0 / kN;
-  
-  Point<fixed> p0 = p[0];
-  Point<fixed> p1 = p[1];
-  Point<fixed> p2 = p[2];
-  Point<fixed> p3 = p[3];
 
   // Calculate the four ks.  
-  Point<fixed> k0 = p0;
-  Point<fixed> k1 = mult_3(p1 - p0);
-  Point<fixed> k2 = mult_3(p2 - (p1 << 1) + p0);
-  Point<fixed> k3 = p3 + mult_3(p1 - p2) - p0;
+  Point<fixed> k0 = p[0];
+  Point<fixed> k1 = mult_3(p[1] - p[0]);
+  Point<fixed> k2 = mult_3(p[2] - (p[1] << 1) + p[0]);
+  Point<fixed> k3 = p[3] + mult_3(p[1] - p[2]) - p[0];
   
   // Caldulate the four ds.
   Point<fixed> d0 = k0;
@@ -143,8 +138,8 @@ void Display::draw_cubic_bezier_fixed_diffs(Point<double> *p) {
   Point<fixed> d3 = mult_3(k3) >> (3 * kLogN - 1);
   
   // Plot
-  int16_t last_x = static_cast<int16_t>(p[0].x);
-  int16_t last_y = static_cast<int16_t>(p[0].y);
+  int16_t last_x = p[0].x.to_int16();
+  int16_t last_y = p[0].y.to_int16();
   for (uint8_t i = 1; i <= kN; i++) {
     d0 = d0 + d1;
     d1 = d1 + d2;
@@ -191,7 +186,7 @@ void Display::draw_cubic_bezier_raw_diffs(Point<double> *p) {
   }
 }
 
-void Display::transform_cubic_bezier(Point<double> *p) {
+void Display::transform_cubic_bezier(Point<fixed> *p) {
   p[0] = transform().transform(p[0]);
   p[1] = transform().transform(p[1]);
   p[2] = transform().transform(p[2]);
@@ -286,4 +281,5 @@ void Display::blit(uint8_t row_start, uint8_t row_end, uint8_t *data,
 void Display::flush(uint16_t on_color, uint16_t off_color) {
   blit(min_x_, max_x_, display_buffer_, on_color, off_color);
 }
+
 

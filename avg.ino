@@ -22,23 +22,29 @@ static const uint8_t kLogHeight = 7;
 static const uint16_t kOnColor = ST7735_GREEN;
 static const uint16_t kOffColor = ST7735_BLACK;
 
+template <typename T> class Point;
+
+#define ENCODE_FIXED(v) static_cast<int32_t>(v * fixed::kFactor)
+
 class fixed {
 public:
-  inline fixed(double v) : raw_(encode(v)) { }
+  inline fixed(double v) : raw_(ENCODE_FIXED(v)) { }
   inline int16_t to_int16() { return static_cast<int16_t>(decode(raw_)); }
-  inline fixed operator*(int16_t v) const { return fixed(M, raw_ * v); }
-  inline fixed operator/(int16_t v) const { return fixed(M, raw_ / v); }
-  inline fixed operator>>(int16_t v) const { return fixed(M, raw_ >> v); }
-  inline fixed operator<<(int16_t v) const { return fixed(M, raw_ << v); }
-  inline fixed operator+(fixed that) const{ return fixed(M, raw_ + that.raw_); }
-  inline fixed operator-(fixed that) const { return fixed(M, raw_ - that.raw_); }
+  inline fixed operator*(int16_t v) const { return from_raw(raw_ * v); }
+  inline fixed operator*(fixed that) const { return from_raw((raw_ >> kHalfScale) * (that.raw_ >> kHalfScale)); }
+  inline fixed operator/(int16_t v) const { return from_raw(raw_ / v); }
+  inline fixed operator>>(int16_t v) const { return from_raw(raw_ >> v); }
+  inline fixed operator<<(int16_t v) const { return from_raw(raw_ << v); }
+  inline fixed operator+(fixed that) const{ return from_raw(raw_ + that.raw_); }
+  inline fixed operator-(fixed that) const { return from_raw(raw_ - that.raw_); }
+  static inline fixed from_raw(int32_t raw) { return fixed(M, raw); }
+  static const uint8_t kScale = 16;
+  static const double kFactor = (static_cast<uint32_t>(1) << kScale);
 private:
   enum Marker { M };
   inline fixed(Marker, int32_t raw) : raw_(raw) { }
-  static const uint8_t kScale = 16;
-  static const double kFactor = (static_cast<uint32_t>(1) << kScale);
-  static inline int32_t encode(double v) { return static_cast<int32_t>(v * kFactor); }
-  static inline double decode(int32_t r) { return r / kFactor; }
+  static const uint8_t kHalfScale = 8;
+  static inline double decode(int32_t r) { return r >> kScale; }
   int32_t raw_;
 };
 
@@ -46,14 +52,20 @@ private:
 class Vector {
 public:
   // Creates a new empty vector.
-  Vector() : x_(0), y_(0), w_(1) { }
+  Vector() : x_(0), y_(0), w_(1), fx_(0), fy_(0), fw_(1) { }
   
   // Creates a new vector with the specified fields.
-  Vector(double x, double y, double w) : x_(x), y_(y), w_(w) { }
+  Vector(double x, double y, double w) : x_(x), y_(y), w_(w), fx_(x), fy_(y), fw_(w) { }
+  
+  // Calculates the dot product (sort of) of this vector with the given point.
+  inline double dot_product(Point<double> p);
+  
+  // Calculates the dot product (sort of) of this vector with the given point.
+  inline fixed dot_product(Point<fixed> p);
+  
 public:
-  double x_;
-  double y_;
-  double w_;
+  double x_, y_, w_;
+  fixed fx_, fy_, fw_;
 };
 
 // A simple (x, y) point.
@@ -74,6 +86,14 @@ public:
   T x;
   T y;
 };
+
+double Vector::dot_product(Point<double> p) {
+  return x_ * p.x + y_ * p.y + w_;
+}
+
+fixed Vector::dot_product(Point<fixed> p) {
+  return fx_ * p.x + fy_ * p.y + fw_;
+}
 
 // A three by three matrix that can be used to transform point on the display.
 class Matrix {
@@ -106,7 +126,7 @@ public:
   // Translates the given point.
   template <typename T>
   inline Point<T> transform(Point<T> p) {
-    return Point<T>(x_.x_ * p.x + x_.y_ * p.y + x_.w_, y_.x_ * p.x + y_.y_ * p.y + y_.w_);
+    return Point<T>(x_.dot_product(p), y_.dot_product(p));
   }
 
   // Prints this matrix on serial.
@@ -132,19 +152,19 @@ public:
   
   // Transforms a line according to the transform matrix and renders it onto this
   // display.
-  inline void transform_line(Point<double> p0, Point<double> p1);
+  inline void transform_line(Point<fixed> p0, Point<fixed> p1);
+  
+  // Transforms a cubic bezier according to the transform matrix and renders it
+  // onto this display.
+  inline void transform_cubic_bezier(Point<fixed> *points);
   
   // Draws a cubic bezier curve from (x0, y0) to (x3, y3) with control points at
   // (x1, y1) and (x2, y2).
   inline void draw_cubic_bezier_plain(Point<double> *points);
   inline void draw_cubic_bezier_raw_diffs(Point<double> *points);
   inline void draw_cubic_bezier_faster_diffs(Point<double> *points);
-  inline void draw_cubic_bezier_fixed_diffs(Point<double> *points);
-  
-  // Transforms a cubic bezier according to the transform matrix and renders it
-  // onto this display.
-  inline void transform_cubic_bezier(Point<double> *points);
-  
+  inline void draw_cubic_bezier_fixed_diffs(Point<fixed> *points);
+    
   // Prepares the display for drawing. Don't call any of the draw methods before
   // you've called this.
   void initialize();
@@ -189,7 +209,7 @@ private:
 
 class Drawing {
 public:
-  static void draw(double *program, Display &display);
+  static void draw(int32_t *program, Display &display);
   static void draw_hand(Display &display);
 };
 

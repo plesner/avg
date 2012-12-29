@@ -5,14 +5,13 @@ enum Operation {
   oEnd
 };
 
-#define c(v) static_cast<double>(v)
-#define move_to(x, y) oAbsMoveTo, c(x), c(y)
-#define line_to(x, y) oAbsLineTo, c(x), c(y)
-#define curve_to(x0, y0, x1, y1, x2, y2) oAbsCurveTo, c(x0), c(y0), c(x1), c(y1), c(x2), c(y2)
+#define move_to(x, y) oAbsMoveTo, x, y
+#define line_to(x, y) oAbsLineTo, x, y
+#define curve_to(x0, y0, x1, y1, x2, y2) oAbsCurveTo, x0, y0, x1, y1, x2, y2
 #define end() oEnd
-#define v(I, F) (I + F)
+#define v(I, F) ENCODE_FIXED(static_cast<double>(I + F))
 
-PROGMEM static double hand_program[] = {
+PROGMEM static int32_t hand_program[] = {
   move_to(v(129, 0.4655), v(52, 0.422114)),
   line_to(v(140, 0.88369), v(52, 0.422114)),
   curve_to(v(143, 0.65173), v(59, 0.18261), v(145, 0.03576), v(65, 0.597017), v(145, 0.03576), v(71, 0.665353)),
@@ -102,30 +101,34 @@ PROGMEM static double hand_program[] = {
   end()
 };
 
-void Drawing::draw(double *program, Display &display) {
-  double x = 0;
-  double y = 0;
+static inline class fixed pgm_read_fixed(int32_t *mem) {
+  return fixed::from_raw(pgm_read_dword(mem));
+}
+
+void Drawing::draw(int32_t *program, Display &display) {
+  fixed x = 0;
+  fixed y = 0;
   while (true) {
-    switch (static_cast<Operation>(pgm_read_float(program++))) {
+    switch (pgm_read_dword(program++)) {
       case oAbsMoveTo: {
-        x = pgm_read_float(program++);
-        y = pgm_read_float(program++);
+        x = pgm_read_fixed(program++);
+        y = pgm_read_fixed(program++);
         break;
       }
       case oAbsLineTo: {
-        float tx = pgm_read_float(program++);
-        float ty = pgm_read_float(program++);
-        display.transform_line(Point<double>(x, y), Point<double>(tx, ty));
+        fixed tx = pgm_read_fixed(program++);
+        fixed ty = pgm_read_fixed(program++);
+        display.transform_line(Point<fixed>(x, y), Point<fixed>(tx, ty));
         x = tx;
         y = ty;
         break;
       }
       case oAbsCurveTo: {
-        Point<double> points[4] = {
-          Point<double>(x, y),
-          Point<double>(pgm_read_float(program++), pgm_read_float(program++)),
-          Point<double>(pgm_read_float(program++), pgm_read_float(program++)),
-          Point<double>(pgm_read_float(program++), pgm_read_float(program++))
+        Point<fixed> points[4] = {
+          Point<fixed>(x, y),
+          Point<fixed>(pgm_read_fixed(program++), pgm_read_fixed(program++)),
+          Point<fixed>(pgm_read_fixed(program++), pgm_read_fixed(program++)),
+          Point<fixed>(pgm_read_fixed(program++), pgm_read_fixed(program++))
         };
         x = points[3].x;
         y = points[3].y;
