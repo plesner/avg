@@ -264,8 +264,10 @@ void Main::setup() {
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
+  pinMode(2, INPUT);
 }
 
+int image = 0;
 void Main::draw_segment(uint16_t min_x, uint16_t max_x, uint16_t *clear_time,
     uint16_t *draw_time, uint16_t *blit_time) {
   display().set_segment(min_x, max_x);
@@ -274,7 +276,17 @@ void Main::draw_segment(uint16_t min_x, uint16_t max_x, uint16_t *clear_time,
   uint16_t end = millis();
   *clear_time += end - start;
   start = end;
-  Drawing::draw_australia(display());
+  switch (image) {
+  case 0:
+    Drawing::draw_hand(display());
+    break;
+  case 1:
+    Drawing::draw_australia(display());
+    break;
+  default:
+    Drawing::draw_arduino(display());
+    break;
+  }
   end = millis();
   *draw_time += end - start;
   start = end;
@@ -283,6 +295,7 @@ void Main::draw_segment(uint16_t min_x, uint16_t max_x, uint16_t *clear_time,
   *blit_time += end - start;
 }
 
+bool is_changing = false;
 void Main::navigate() {
   static const double kMax = 1024.0;
   static const double kHalf = kMax / 2.0;
@@ -296,6 +309,14 @@ void Main::navigate() {
   } else {
     double ratio = (raw_zoom - kHalf) / kHalf;
     zoom = ratio * kMinZoom + (1 - ratio);
+  }
+  
+  bool should_change = digitalRead(2);
+  if (should_change && !is_changing) {
+    is_changing = true;
+  } else if (!should_change && is_changing) {
+    image = (image + 1) % 3;
+    is_changing = false;
   }
   
   // Pan
