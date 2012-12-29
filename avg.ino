@@ -2,6 +2,8 @@
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
 
+#define LOG_TIMING 1
+
 // How far can you zoom in? Don't make this too high or it becomes impossible to
 // navigate.
 static const double kMaxZoom = 8.0;
@@ -10,7 +12,7 @@ static const double kMaxZoom = 8.0;
 static const double kMinZoom = 0.5;
 
 // How many points are we painting per segment of a curve?
-static const uint16_t kLogN = 4;
+static const uint16_t kLogN = 3;
 static const uint16_t kN = 1 << kLogN;
 
 // Display parameters
@@ -225,8 +227,11 @@ private:
 
 class Drawing {
 public:
-  static void draw(int32_t *program, Display &display);
   static void draw_hand(Display &display);
+  static void draw_australia(Display &display);
+  static void draw_arduino(Display &display);
+private:
+  static void draw(int32_t *program, Display &display);
 };
 
 class Main {
@@ -269,7 +274,7 @@ void Main::draw_segment(uint16_t min_x, uint16_t max_x, uint16_t *clear_time,
   uint16_t end = millis();
   *clear_time += end - start;
   start = end;
-  Drawing::draw_hand(display());
+  Drawing::draw_australia(display());
   end = millis();
   *draw_time += end - start;
   start = end;
@@ -315,6 +320,7 @@ void Main::loop() {
   draw_segment(0, kWidth / 2, &clear_time, &draw_time, &blit_time);
   draw_segment(kWidth / 2, kWidth, &clear_time, &draw_time, &blit_time);
   uint16_t end = millis();
+#if LOG_TIMING == 1
   Serial.print("clear: ");
   Serial.println(clear_time, DEC);
   Serial.print("draw: ");
@@ -323,6 +329,7 @@ void Main::loop() {
   Serial.println(blit_time, DEC);
   Serial.print("total: ");
   Serial.println(end - start, DEC);
+#endif
   navigate();
 }
 

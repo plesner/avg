@@ -156,10 +156,10 @@ void Display::draw_cubic_bezier_fixed_diffs_precomputed(Point<fixed> *p) {
   static const double d = 1.0 / kN;
 
   // Calculate the four ks.  
-  Point<fixed> k0 = p[4];
-  Point<fixed> k1 = p[5];
-  Point<fixed> k2 = p[6];
-  Point<fixed> k3 = p[7];
+  Point<fixed> k0 = p[0];
+  Point<fixed> k1 = p[1];
+  Point<fixed> k2 = p[2];
+  Point<fixed> k3 = p[3];
   
   // Caldulate the four ds.
   Point<fixed> d0 = k0;
@@ -217,17 +217,17 @@ void Display::draw_cubic_bezier_raw_diffs(Point<double> *p) {
 }
 
 void Display::transform_cubic_bezier(Point<fixed> *p) {
+#ifdef PRECOMPUTED
+  p[0] = transform().transform(p[0]);
+  p[1] = transform().transform_no_translate(p[1]);
+  p[2] = transform().transform_no_translate(p[2]);
+  p[3] = transform().transform_no_translate(p[3]);
+  draw_cubic_bezier_fixed_diffs_precomputed(p);
+#else
   p[0] = transform().transform(p[0]);
   p[1] = transform().transform(p[1]);
   p[2] = transform().transform(p[2]);
   p[3] = transform().transform(p[3]);
-#ifdef PRECOMPUTED
-  p[4] = transform().transform(p[4]);
-  p[5] = transform().transform_no_translate(p[5]);
-  p[6] = transform().transform_no_translate(p[6]);
-  p[7] = transform().transform_no_translate(p[7]);
-  draw_cubic_bezier_fixed_diffs_precomputed(p);
-#else
   draw_cubic_bezier_fixed_diffs(p);
 #endif
 }

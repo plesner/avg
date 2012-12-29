@@ -21,7 +21,10 @@ class Stream(object):
 
 x = 0.0
 y = 0.0
+start_x = None
+start_y = None
 def main(args):
+  global x, y
   assert len(args) == 1
   stream = Stream(open(args[0], "rt").read())
   def format_float(val):
@@ -29,9 +32,17 @@ def main(args):
   def parse_coord(coord):
     [x_str, y_str] = coord.split(",")
     return (float(x_str), float(y_str))
-  def emit(is_rel, op, *args):
-    global x
-    global y
+  def update_start():
+    global start_x, start_y
+    if start_x is None:
+      start_x = x
+      start_y = y
+  def emit(is_rel, draws, op, *args):
+    global x, y, start_x, start_y
+    if draws:
+      update_start()
+    else:
+      start_x = start_y = None
     def process_coord(str):
       (vx, vy) = parse_coord(str)
       if is_rel:
@@ -46,28 +57,61 @@ def main(args):
     else:
       x = dx
       y = dy
+  def emit_straight(is_rel, is_vertical, op, arg):
+    global x, y
+    update_start()
+    d = float(arg)
+    nx = x
+    ny = y
+    if is_rel:
+      if is_vertical:
+        ny += d
+      else:
+        nx += d
+    else:
+      if is_vertical:
+        ny = d
+      else:
+        nx = d
+    print "  %s(%s, %s, %s, %s)," % (op, format_float(x), format_float(y), format_float(nx), format_float(ny))
+    x = nx
+    y = ny
   while stream.has_more():
     instr = stream.next()
     if instr == "m":
-      emit(True, "move_to", stream.next())
+      emit(True, False, "move_to", stream.next())
       while stream.has_more() and len(stream.peek()) > 1:
-        emit(True, "line_to", stream.next())
+        emit(True, True, "line_to", stream.next())
     elif instr == "M":
-      emit(False, "move_to", stream.next())
+      emit(False, False, "move_to", stream.next())
       while stream.has_more() and len(stream.peek()) > 1:
-        emit(False, "line_to", stream.next())
+        emit(False, True, "line_to", stream.next())
     elif instr == "L":
       while stream.has_more() and len(stream.peek()) > 1:
-        emit(False, "line_to", stream.next())
+        emit(False, True, "line_to", stream.next())
     elif instr == "l":
       while stream.has_more() and len(stream.peek()) > 1:
-        emit(True, "line_to", stream.next())
+        emit(True, True, "line_to", stream.next())
+    elif instr == "v":
+      while stream.has_more() and len(stream.peek()) > 1:
+        emit_straight(True, True, "line_to", stream.next())
+    elif instr == "V":
+      while stream.has_more() and len(stream.peek()) > 1:
+        emit_straight(False, True, "line_to", stream.next())
+    elif instr == "h":
+      while stream.has_more() and len(stream.peek()) > 1:
+        emit_straight(True, False, "line_to", stream.next())
+    elif instr == "h":
+      while stream.has_more() and len(stream.peek()) > 1:
+        emit_straight(False, False, "line_to", stream.next())
     elif instr == "c":
       while stream.has_more() and len(stream.peek()) > 1:
-        emit(True, "curve_to", stream.next(), stream.next(), stream.next())
+        emit(True, True, "curve_to", stream.next(), stream.next(), stream.next())
     elif instr == "C":
       while stream.has_more() and len(stream.peek()) > 1:
-        emit(False, "curve_to", stream.next(), stream.next(), stream.next())
+        emit(False, True, "curve_to", stream.next(), stream.next(), stream.next())
+    elif instr == "z":
+      emit(False, False, "line_to", "%s,%s" % (start_x, start_y))
     else:
       print instr
   print "  end()"
