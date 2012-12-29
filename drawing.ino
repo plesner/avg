@@ -6,18 +6,23 @@ enum Operation {
 };
 
 #define K0(P0)             (P0)
-#define K1(P0, P1)         ((P1 - P0) * 3)
-#define K2(P0, P1, P2)     ((P2 - (P1 * 2) + P0) * 3)
-#define K3(P0, P1, P2, P3) (P3 - (P2 * 3) + (P1 * 3) - P0)
+#define K1(P0, P1)         ((P1 - P0) * 3.0)
+#define K2(P0, P1, P2)     ((P2 - (P1 * 2.0) + P0) * 3.0)
+#define K3(P0, P1, P2, P3) (P3 - (P2 * 3.0) + (P1 * 3.0) - P0)
+#define D0(P0)             K0(P0)
+#define D1(P0, P1, P2, P3) ((((K3(P0, P1, P2, P3) / kN) + K2(P0, P1, P2)) / kN + K1(P0, P1)) / kN)
+#define D2(P0, P1, P2, P3) ((((3.0 * K3(P0, P1, P2, P3) / kN) + K2(P0, P1, P2)) * 2.0) / kN)
+#define D3(P0, P1, P2, P3) (6.0 * K3(P0, P1, P2, P3) / kN)
+
 #define F(v) ENCODE_FIXED(static_cast<double>(v))
 
 #ifdef PRECOMPUTED
 #define curve_to(x0, y0, x1, y1, x2, y2, x3, y3) \
   oAbsCurveTo, \
-  F(K0(x0)), F(K0(y0)), \
-  F(K1(x0, x1)), F(K1(y0, y1)), \
-  F(K2(x0, x1, x2)), F(K2(y0, y1, y2)), \
-  F(K3(x0, x1, x2, x3)), F(K3(y0, y1, y2, y3)), \
+  F(D0(x0)),             F(D0(y0)), \
+  F(D1(x0, x1, x2, x3)), F(D1(y0, y1, y2, y3)), \
+  F(D2(x0, x1, x2, x3)), F(D2(y0, y1, y2, y3)), \
+  F(D3(x0, x1, x2, x3)), F(D3(y0, y1, y2, y3)), \
   F(x3), F(y3)
 #else
 #define curve_to(x0, y0, x1, y1, x2, y2, x3, y3) oAbsCurveTo, F(x1), F(y1), F(x2), F(y2), F(x3), F(y3)
@@ -477,3 +482,4 @@ void Drawing::draw_australia(Display &display) {
 void Drawing::draw_arduino(Display &display) {
   draw(arduino_program, display);
 }
+

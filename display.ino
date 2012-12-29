@@ -123,8 +123,6 @@ static inline Point<fixed> mult_3(const Point<fixed> &p) {
 }
 
 void Display::draw_cubic_bezier_fixed_diffs(Point<fixed> *p) {
-  static const double d = 1.0 / kN;
-
   // Calculate the four ks.  
   Point<fixed> k0 = p[0];
   Point<fixed> k1 = mult_3(p[1] - p[0]);
@@ -152,24 +150,16 @@ void Display::draw_cubic_bezier_fixed_diffs(Point<fixed> *p) {
   }
 }
 
-void Display::draw_cubic_bezier_fixed_diffs_precomputed(Point<fixed> *p) {
-  static const double d = 1.0 / kN;
-
-  // Calculate the four ks.  
-  Point<fixed> k0 = p[0];
-  Point<fixed> k1 = p[1];
-  Point<fixed> k2 = p[2];
-  Point<fixed> k3 = p[3];
-  
+void Display::draw_cubic_bezier_fixed_diffs_precomputed(Point<fixed> *d) {
   // Caldulate the four ds.
-  Point<fixed> d0 = k0;
-  Point<fixed> d1 = ((((k3 >> kLogN) + k2) >> kLogN) + k1) >> kLogN;
-  Point<fixed> d2 = ((mult_3(k3) >> kLogN) + k2) >> (kLogN * 2 - 1);
-  Point<fixed> d3 = mult_3(k3) >> (3 * kLogN - 1);
+  Point<fixed> d0 = d[0];
+  Point<fixed> d1 = d[1];
+  Point<fixed> d2 = d[2] >> kLogN;
+  Point<fixed> d3 = d[3] >> (2 * kLogN);
   
   // Plot
-  int16_t last_x = p[0].x.to_int16();
-  int16_t last_y = p[0].y.to_int16();
+  int16_t last_x = d[0].x.to_int16();
+  int16_t last_y = d[0].y.to_int16();
   for (uint8_t i = 1; i <= kN; i++) {
     d0 = d0 + d1;
     d1 = d1 + d2;

@@ -13,7 +13,7 @@ static const double kMinZoom = 0.5;
 
 // How many points are we painting per segment of a curve?
 static const uint16_t kLogN = 3;
-static const uint16_t kN = 1 << kLogN;
+static const double kN = static_cast<int32_t>(1) << kLogN;
 
 // Display parameters
 static const uint8_t kWidth = 160;
@@ -136,13 +136,13 @@ public:
   
   // Translates the given point.
   template <typename T>
-  inline Point<T> transform(Point<T> p) {
+  inline Point<T> transform(const Point<T> &p) {
     return Point<T>(x_.dot_product(p), y_.dot_product(p));
   }
   
     // Translates the given point without adding the translation parameter w.
   template <typename T>
-  inline Point<T> transform_no_translate(Point<T> p) {
+  inline Point<T> transform_no_translate(const Point<T> &p) {
     return Point<T>(x_.dot_product_no_translate(p), y_.dot_product_no_translate(p));
   }
 
@@ -276,17 +276,7 @@ void Main::draw_segment(uint16_t min_x, uint16_t max_x, uint16_t *clear_time,
   uint16_t end = millis();
   *clear_time += end - start;
   start = end;
-  switch (image) {
-  case 0:
-    Drawing::draw_hand(display());
-    break;
-  case 1:
-    Drawing::draw_australia(display());
-    break;
-  default:
-    Drawing::draw_arduino(display());
-    break;
-  }
+  Drawing::draw_australia(display());
   end = millis();
   *draw_time += end - start;
   start = end;
@@ -361,3 +351,4 @@ void setup() {
 void loop() {
   main.loop();
 }
+
