@@ -2,7 +2,7 @@
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
 
-#define LOG_TIMING 1
+#define LOG_TIMING 0
 
 // How far can you zoom in? Don't make this too high or it becomes impossible to
 // navigate.
@@ -12,7 +12,7 @@ static const double kMaxZoom = 8.0;
 static const double kMinZoom = 0.5;
 
 // How many points are we painting per segment of a curve?
-static const uint16_t kLogN = 3;
+static const uint16_t kLogN = 4;
 static const double kN = static_cast<int32_t>(1) << kLogN;
 
 // Display parameters
@@ -276,7 +276,17 @@ void Main::draw_segment(uint16_t min_x, uint16_t max_x, uint16_t *clear_time,
   uint16_t end = millis();
   *clear_time += end - start;
   start = end;
-  Drawing::draw_australia(display());
+  switch (image) {
+  case 0:
+    Drawing::draw_australia(display());
+    break;
+  case 1:
+    Drawing::draw_hand(display());
+    break;
+  default:
+    Drawing::draw_arduino(display());
+    break;
+  }
   end = millis();
   *draw_time += end - start;
   start = end;
